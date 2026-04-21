@@ -573,6 +573,15 @@ function normalizeBitaxeUrl(raw) {
   return withScheme.replace(/\/+$/, "");
 }
 
+// Same as normalizeBitaxeUrl but also strips a trailing /users or /users/
+// path — CKPool users often copy the endpoint URL directly and it'd
+// otherwise get duplicated when the dashboard appends /users/{addr}.
+function normalizePoolUrl(raw) {
+  const base = normalizeBitaxeUrl(raw);
+  if (!base) return "";
+  return base.replace(/\/users\/?$/i, "");
+}
+
 // ---------- localStorage helpers ----------
 
 function loadHistory(address) {
@@ -1031,6 +1040,14 @@ const POOLS = [
     mempoolSlug: "solock",
   },
   {
+    id: "eusolock",
+    label: "eusolo.ckpool.org",
+    target: "https://eusolo.ckpool.org",
+    path: (addr) => `/users/${addr}`,
+    adapt: adaptCkpool,
+    mempoolSlug: "eusolock", // best-effort guess
+  },
+  {
     id: "publicpool",
     label: "public-pool.io",
     target: "https://public-pool.io:40557",
@@ -1206,7 +1223,7 @@ export default function BitaxeDashboard() {
     if (!address) return;
     const pool = getPool(poolId);
     const target =
-      pool.id === "custom" ? normalizeBitaxeUrl(customPoolUrl) : pool.target;
+      pool.id === "custom" ? normalizePoolUrl(customPoolUrl) : pool.target;
     if (!target) {
       setError(t.noPoolUrl);
       return;
@@ -1964,7 +1981,7 @@ export default function BitaxeDashboard() {
                   const pool = getPool(poolId);
                   const target =
                     pool.id === "custom"
-                      ? normalizeBitaxeUrl(customPoolUrl)
+                      ? normalizePoolUrl(customPoolUrl)
                       : pool.target;
                   const href = target
                     ? `${target}${pool.path(address)}`
