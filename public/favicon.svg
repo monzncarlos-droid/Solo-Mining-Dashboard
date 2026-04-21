@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!-- Background -->
+  <rect width="32" height="32" fill="#0a0a0a" rx="4"/>
+
+  <!-- PICKAXE HEAD — hexagonal bar with pointed tips on both ends -->
+  <!-- Outer tips (row 7) -->
+  <rect x="2" y="10" width="2" height="2" fill="#f7931a"/>
+  <rect x="28" y="10" width="2" height="2" fill="#f7931a"/>
+  <!-- Tapering toward body (row 8) -->
+  <rect x="4" y="9" width="4" height="4" fill="#f7931a"/>
+  <rect x="24" y="9" width="4" height="4" fill="#f7931a"/>
+  <!-- Main body of the head -->
+  <rect x="8" y="8" width="16" height="6" fill="#f7931a"/>
+
+  <!-- Head highlight (top edge glint) -->
+  <rect x="5" y="9" width="2" height="1" fill="#fdba74"/>
+  <rect x="8" y="8" width="16" height="1" fill="#fdba74"/>
+  <rect x="25" y="9" width="2" height="1" fill="#fdba74"/>
+
+  <!-- Head shadow (bottom edge) -->
+  <rect x="4" y="12" width="4" height="1" fill="#c2410c"/>
+  <rect x="8" y="13" width="16" height="1" fill="#c2410c"/>
+  <rect x="24" y="12" width="4" height="1" fill="#c2410c"/>
+
+  <!-- Joint between head and handle -->
+  <rect x="13" y="14" width="6" height="1" fill="#451a03"/>
+
+  <!-- HANDLE (wooden, vertical) -->
+  <rect x="14" y="15" width="4" height="13" fill="#b45309"/>
+  <!-- Handle left-edge shine -->
+  <rect x="14" y="15" width="1" height="13" fill="#d97706"/>
+  <!-- Handle right-edge shadow -->
+  <rect x="17" y="15" width="1" height="13" fill="#78350f"/>
+
+  <!-- Grip wraps (darker bands for detail) -->
+  <rect x="14" y="19" width="4" height="1" fill="#3f1d0a"/>
+  <rect x="14" y="24" width="4" height="1" fill="#3f1d0a"/>
+
+  <!-- Handle bottom cap -->
+  <rect x="13" y="28" width="6" height="1" fill="#78350f"/>
+</svg>

@@ -1,0 +1,64 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build / deps
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ------------------------------------------------------------------
+# AI assistants — exclude any local config / memory / instructions
+# ------------------------------------------------------------------
+
+# Claude Code (claude.ai/code)
+CLAUDE.md
+.claude/
+.claudeignore
+
+# Cursor
+.cursor/
+.cursorrules
+.cursorignore
+
+# GitHub Copilot
+.github/copilot-instructions.md
+
+# Aider
+.aider*
+.aider.conf.yml
+.aider.input.history
+.aider.chat.history.md
+.aider.tags.cache*
+
+# Continue.dev
+.continue/
+
+# Codeium / Windsurf
+.codeium/
+.windsurf/
+
+# Cody (Sourcegraph)
+.cody/
+
+# JetBrains AI assistant / OpenAI / generic
+.openai/
+.ai/
+.chatgpt/
