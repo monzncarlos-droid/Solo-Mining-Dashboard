@@ -478,10 +478,10 @@ function formatClock(ms) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function formatOdds(p) {
+function formatOdds(p, lang = "en") {
   if (!p || !isFinite(p) || p <= 0) return "—";
-  if (p >= 1) return "certain";
-  return `1 in ${formatDiff(1 / p)}`;
+  if (p >= 1) return lang === "fr" ? "certain" : "certain";
+  return STRINGS[lang].odds(formatDiff(1 / p));
 }
 
 function formatPercent(p) {
@@ -1208,7 +1208,7 @@ export default function BitaxeDashboard() {
     const target =
       pool.id === "custom" ? normalizeBitaxeUrl(customPoolUrl) : pool.target;
     if (!target) {
-      setError("No pool URL configured. Set one in Settings.");
+      setError(t.noPoolUrl);
       return;
     }
     setLoading(true);
@@ -1441,10 +1441,10 @@ export default function BitaxeDashboard() {
   const expectedLabel = !isFinite(expectedYears)
     ? "—"
     : expectedYears >= 1_000_000
-    ? `${(expectedYears / 1_000_000).toFixed(1)}M years`
+    ? t.mYears((expectedYears / 1_000_000).toFixed(1))
     : expectedYears >= 1000
-    ? `${(expectedYears / 1000).toFixed(0)}k years`
-    : `${expectedYears.toFixed(0)} years`;
+    ? t.kYears((expectedYears / 1000).toFixed(0))
+    : t.years(expectedYears.toFixed(0));
 
   const lambda =
     hashrate1m > 0
@@ -1531,15 +1531,66 @@ export default function BitaxeDashboard() {
               style={mono}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              BACK TO DASHBOARD
+              {t.backToDashboard}
             </button>
             <h1
               className="text-2xl font-bold tracking-tight"
               style={display}
             >
-              SETTINGS
+              {t.settingsTitle}
             </h1>
           </header>
+
+          <section className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-accent text-lg leading-none">🌐</span>
+              <h2
+                className="text-xs tracking-[0.3em] text-muted"
+                style={mono}
+              >
+                {t.languageLabel}
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-w-md">
+              {LANGUAGES.map((l) => {
+                const selected = lang === l.id;
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => {
+                      setLang(l.id);
+                      triggerBurst(`lang:${l.id}`);
+                    }}
+                    className={`relative overflow-visible flex items-center gap-3 px-4 py-3 border-2 transition ${
+                      selected
+                        ? "border-accent bg-accent/20 text-accent selected-glow"
+                        : "border-line text-muted hover:border-accent/30 hover:text-fg"
+                    }`}
+                    style={mono}
+                  >
+                    <span className="text-lg leading-none relative z-10">
+                      {l.flag}
+                    </span>
+                    <span className="text-xs tracking-[0.15em] relative z-10">
+                      {l.label.toUpperCase()}
+                    </span>
+                    {selected && (
+                      <Check
+                        className="w-4 h-4 ml-auto text-accent relative z-10"
+                        strokeWidth={3}
+                      />
+                    )}
+                    {burstAt.target === `lang:${l.id}` && (
+                      <Burst
+                        key={burstAt.count}
+                        color="rgb(var(--accent-rgb))"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           <section className="mb-10">
             <div className="flex items-center gap-2 mb-4">
@@ -1548,7 +1599,7 @@ export default function BitaxeDashboard() {
                 className="text-xs tracking-[0.3em] text-muted"
                 style={mono}
               >
-                APPEARANCE
+                {t.appearance}
               </h2>
             </div>
 
@@ -1557,12 +1608,12 @@ export default function BitaxeDashboard() {
                 className="text-[10px] tracking-[0.25em] text-muted-dim mb-3"
                 style={mono}
               >
-                THEME
+                {t.themeLabel}
               </div>
               <div className="grid grid-cols-2 gap-3 max-w-md">
                 {[
-                  { id: "dark", label: "DARK", Icon: Moon },
-                  { id: "light", label: "LIGHT", Icon: Sun },
+                  { id: "dark", label: t.dark, Icon: Moon },
+                  { id: "light", label: t.light, Icon: Sun },
                 ].map(({ id, label, Icon }) => {
                   const selected = theme === id;
                   return (
@@ -1606,7 +1657,7 @@ export default function BitaxeDashboard() {
                 className="text-[10px] tracking-[0.25em] text-muted-dim mb-3"
                 style={mono}
               >
-                ACCENT COLOR
+                {t.accentLabel}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {ACCENTS.map((a) => {
@@ -1650,7 +1701,7 @@ export default function BitaxeDashboard() {
                         )}
                       </span>
                       <span className="text-xs tracking-[0.15em] relative z-10">
-                        {a.label.toUpperCase()}
+                        {t.accentNames[a.id] || a.label.toUpperCase()}
                       </span>
                       {burstAt.target === `accent:${a.id}` && (
                         <Burst key={burstAt.count} color={a.swatch} />
@@ -1669,7 +1720,7 @@ export default function BitaxeDashboard() {
                 className="text-xs tracking-[0.3em] text-muted"
                 style={mono}
               >
-                DATA
+                {t.data}
               </h2>
             </div>
             <div>
@@ -1677,7 +1728,7 @@ export default function BitaxeDashboard() {
                 className="text-[10px] tracking-[0.25em] text-muted-dim mb-3"
                 style={mono}
               >
-                POOL REFRESH RATE
+                {t.poolRefreshRate}
               </div>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {REFRESH_OPTIONS.map((opt) => {
@@ -1710,10 +1761,7 @@ export default function BitaxeDashboard() {
                 })}
               </div>
               <div className="mt-3 text-[10px] text-muted-dim leading-relaxed" style={mono}>
-                How often the dashboard polls solo.ckpool.org for your wallet
-                stats. Shorter = more live, longer = nicer to the pool. 30s
-                is the default. Network (mempool.space) and Bitaxe device
-                polling are not affected.
+                {t.refreshDesc}
               </div>
             </div>
           </section>
@@ -1722,7 +1770,7 @@ export default function BitaxeDashboard() {
             <div className="flex items-center gap-2 mb-4">
               <Cpu className="w-4 h-4 text-accent" />
               <h2 className="text-xs tracking-[0.3em] text-muted" style={mono}>
-                POOL
+                {t.poolSection}
               </h2>
             </div>
             <div className="mb-6">
@@ -1730,7 +1778,7 @@ export default function BitaxeDashboard() {
                 className="text-[10px] tracking-[0.25em] text-muted-dim mb-3"
                 style={mono}
               >
-                POOL PRESET
+                {t.poolPreset}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {POOLS.map((p) => {
@@ -1753,9 +1801,7 @@ export default function BitaxeDashboard() {
                         {p.label.toUpperCase()}
                       </span>
                       <span className="text-[9px] text-muted-dim relative z-10 tracking-normal normal-case">
-                        {p.id === "custom"
-                          ? "CKPool-format URL you provide"
-                          : p.target}
+                        {p.id === "custom" ? t.customCkpoolDesc : p.target}
                       </span>
                       {burstAt.target === `pool:${p.id}` && (
                         <Burst
@@ -1774,7 +1820,7 @@ export default function BitaxeDashboard() {
                   className="text-[10px] tracking-[0.25em] text-muted-dim mb-2"
                   style={mono}
                 >
-                  CUSTOM POOL URL · e.g. https://my-pool.example.com
+                  {t.customPoolUrl}
                 </div>
                 <input
                   value={customPoolUrl}
@@ -1787,25 +1833,17 @@ export default function BitaxeDashboard() {
                   className="mt-2 text-[10px] text-muted-dim leading-relaxed"
                   style={mono}
                 >
-                  Any self-hosted CKPool instance exposing{" "}
-                  <span className="text-fg-dim">/users/&#123;address&#125;</span>{" "}
-                  JSON. Different API shapes (Ocean, Braiins, etc.) are not
-                  supported — they'd each need an adapter.
+                  {t.customPoolNote}
                 </div>
               </div>
             )}
             <div className="text-[10px] text-muted-dim leading-relaxed" style={mono}>
-              solo.ckpool.org and public-pool.io are supported out of the box.
-              The blocks-found feed only shows for pools mempool.space tracks
-              (currently solo.ckpool only).
+              {t.poolHelp}
             </div>
           </section>
 
           <section className="text-[10px] text-muted-dim leading-relaxed" style={mono}>
-            <p>
-              All preferences are persisted in localStorage. Changes apply
-              instantly.
-            </p>
+            <p>{t.persistNote}</p>
           </section>
         </div>
       </div>
@@ -1841,7 +1879,7 @@ export default function BitaxeDashboard() {
               BITAXE<span className="text-accent blink">_</span>
             </h1>
             <p className="text-muted mt-3 text-sm">
-              Solo mining dashboard · Lottery odds, live.
+              {t.subtitle}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1854,7 +1892,7 @@ export default function BitaxeDashboard() {
               }`}
               style={mono}
             >
-              AUTO {autoRefresh ? "ON" : "OFF"}
+              {t.autoLabel} {autoRefresh ? t.on : t.off}
             </button>
             <button
               onClick={fetchData}
@@ -1865,7 +1903,7 @@ export default function BitaxeDashboard() {
               <RefreshCw
                 className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
               />
-              {loading ? "SYNC..." : "REFRESH"}
+              {loading ? t.syncing : t.refresh}
             </button>
             <button
               onClick={() => setView("settings")}
@@ -1880,7 +1918,7 @@ export default function BitaxeDashboard() {
         {/* Address input */}
         <div className="mb-6 flex flex-col md:flex-row gap-2 items-start md:items-center">
           <span className="text-muted text-xs" style={mono}>
-            WALLET &gt;
+            {t.wallet}
           </span>
           <input
             value={address}
@@ -1890,7 +1928,7 @@ export default function BitaxeDashboard() {
           />
           <span className="text-[10px] text-muted-dim" style={mono}>
             {lastFetch
-              ? `synced ${formatRelativeTime(Math.floor(lastFetch / 1000))}`
+              ? `${t.syncedPrefix} ${formatRelativeTime(Math.floor(lastFetch / 1000), lang)}`
               : ""}
           </span>
         </div>
@@ -1904,10 +1942,10 @@ export default function BitaxeDashboard() {
                 className="text-accent text-sm tracking-[0.15em]"
                 style={mono}
               >
-                NEW BEST SHARE · {formatDiff(allTimeBest)}
+                {t.newBestShare} · {formatDiff(allTimeBest)}
               </div>
               <div className="text-xs text-muted mt-0.5">
-                Tu viens de battre ton record personnel. Continue.
+                {t.newRecordSub}
               </div>
             </div>
           </div>
@@ -1920,9 +1958,7 @@ export default function BitaxeDashboard() {
               <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
               <div className="flex-1">
                 <div className="text-amber-500 text-sm mb-1" style={mono}>
-                  {data
-                    ? "Live fetch blocked — using pasted JSON"
-                    : "Fetch failed (CORS or network)"}
+                  {data ? t.liveFetchBlocked : t.fetchFailed}
                 </div>
                 {(() => {
                   const pool = getPool(poolId);
@@ -1935,7 +1971,7 @@ export default function BitaxeDashboard() {
                     : null;
                   return href ? (
                     <p className="text-xs text-muted mb-3">
-                      Colle le JSON depuis{" "}
+                      {t.pasteJsonFrom}{" "}
                       <a
                         href={href}
                         target="_blank"
@@ -1961,7 +1997,7 @@ export default function BitaxeDashboard() {
                   className="mt-2 px-3 py-1.5 border border-accent/40 bg-accent/10 text-accent text-xs hover:bg-accent/20"
                   style={mono}
                 >
-                  PARSE JSON
+                  {t.parseJson}
                 </button>
               </div>
             </div>
@@ -1979,22 +2015,22 @@ export default function BitaxeDashboard() {
                 {isAlive ? (
                   <>
                     <Wifi className="w-3 h-3 text-green-500" />
-                    <span className="text-green-500">ONLINE</span>
+                    <span className="text-green-500">{t.online}</span>
                   </>
                 ) : (
                   <>
                     <WifiOff className="w-3 h-3 text-red-500" />
-                    <span className="text-red-500">OFFLINE</span>
+                    <span className="text-red-500">{t.offline}</span>
                   </>
                 )}
               </div>
               <div className="text-muted">
-                WORKERS <span className="text-accent">{workers}</span>
+                {t.workers} <span className="text-accent">{workers}</span>
               </div>
               <div className="text-muted">
-                LAST SHARE{" "}
+                {t.lastShare}{" "}
                 <span className="text-accent">
-                  {formatRelativeTime(lastshare)}
+                  {formatRelativeTime(lastshare, lang)}
                 </span>
               </div>
             </div>
@@ -2012,7 +2048,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] tracking-[0.3em] text-accent/60"
                     style={mono}
                   >
-                    CURRENT HASHRATE · 1M AVG
+                    {t.currentHashrate}
                   </div>
                 </div>
                 <div
@@ -2022,7 +2058,7 @@ export default function BitaxeDashboard() {
                   {formatHashrate(hashrate1m)}
                 </div>
                 <div className="mt-3 text-muted text-xs" style={mono}>
-                  {Math.floor(hashrate1m).toLocaleString()} H/s · raw
+                  {Math.floor(hashrate1m).toLocaleString()} H/s · {t.raw}
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-accent/10">
@@ -2031,7 +2067,7 @@ export default function BitaxeDashboard() {
                       className="text-[10px] tracking-[0.3em] text-accent/60"
                       style={mono}
                     >
-                      LAST 24H · {history.length} SAMPLES · HOVER FOR DETAILS
+                      {t.samplesLabel(history.length)}
                     </div>
                     {trendPct != null && (
                       <div
@@ -2053,10 +2089,10 @@ export default function BitaxeDashboard() {
             {/* Hashrate breakdown */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-line mb-6">
               {[
-                { label: "5 MIN", val: hashrate5m },
-                { label: "1 HOUR", val: hashrate1hr },
-                { label: "24 HOURS", val: hashrate1d },
-                { label: "7 DAYS", val: hashrate7d },
+                { label: t.min5, val: hashrate5m },
+                { label: t.hour1, val: hashrate1hr },
+                { label: t.hours24, val: hashrate1d },
+                { label: t.days7, val: hashrate7d },
               ].map(({ label, val }) => (
                 <div key={label} className="bg-page p-5">
                   <div
@@ -2081,13 +2117,13 @@ export default function BitaxeDashboard() {
                     className="text-sm tracking-[0.2em] text-fg-dim"
                     style={mono}
                   >
-                    BEST SHARE · JACKPOT PROGRESS
+                    {t.bestShareTitle}
                   </h2>
                 </div>
                 <div className="text-[10px] text-muted" style={mono}>
-                  TARGET: {formatDiff(network.difficulty)}
+                  {t.target}: {formatDiff(network.difficulty)}
                   {network.stale && (
-                    <span className="text-amber-500/80"> · STALE</span>
+                    <span className="text-amber-500/80"> · {t.stale}</span>
                   )}
                 </div>
               </div>
@@ -2107,7 +2143,7 @@ export default function BitaxeDashboard() {
                     className="ml-auto text-right text-[10px] text-muted"
                     style={mono}
                   >
-                    ALL-TIME BEST
+                    {t.allTimeBest}
                     <br />
                     <span className="text-accent text-sm">
                       {formatDiff(allTimeBest)}
@@ -2149,12 +2185,12 @@ export default function BitaxeDashboard() {
 
               <p className="text-xs text-muted mt-5 leading-relaxed">
                 {bestShare >= network.difficulty
-                  ? "🎰 YOU WON A BLOCK. Check mempool.space NOW."
-                  : `Tu es à environ 1/${formatDiff(oddsRatio)} du jackpot sur ta meilleure tentative. Chaque share est un nouveau ticket.`}
+                  ? t.youWonBlock
+                  : t.jackpotMessage(formatDiff(oddsRatio))}
               </p>
               {hashrate1m > 0 && (
                 <p className="text-[10px] text-muted-dim mt-2" style={mono}>
-                  reality check · expected time to block at current hashrate ≈{" "}
+                  {t.realityCheck}{" "}
                   <span className="text-muted">{expectedLabel}</span>
                 </p>
               )}
@@ -2170,11 +2206,11 @@ export default function BitaxeDashboard() {
                       className="text-sm tracking-[0.2em] text-fg-dim"
                       style={mono}
                     >
-                      NEXT DIFFICULTY RETARGET
+                      {t.nextDiffRetarget}
                     </h2>
                   </div>
                   <div className="text-[10px] text-muted" style={mono}>
-                    block{" "}
+                    {t.blockWord}{" "}
                     {formatNumber(network.adjustment.nextRetargetHeight)}
                   </div>
                 </div>
@@ -2184,20 +2220,20 @@ export default function BitaxeDashboard() {
                       className="text-[10px] tracking-[0.2em] text-muted mb-2"
                       style={mono}
                     >
-                      ETA
+                      {t.eta}
                     </div>
                     <div
                       className="text-2xl font-bold text-accent tabular-nums"
                       style={mono}
                     >
-                      {formatUptime(network.adjustment.remainingTime)}
+                      {formatUptime(network.adjustment.remainingTime, lang)}
                     </div>
                     <div
                       className="text-[10px] text-muted-dim mt-1"
                       style={mono}
                     >
-                      {formatNumber(network.adjustment.remainingBlocks)} blocks
-                      remaining
+                      {formatNumber(network.adjustment.remainingBlocks)}{" "}
+                      {t.blocksRemaining}
                     </div>
                   </div>
                   <div className="bg-page p-5">
@@ -2205,7 +2241,7 @@ export default function BitaxeDashboard() {
                       className="text-[10px] tracking-[0.2em] text-muted mb-2"
                       style={mono}
                     >
-                      ESTIMATED CHANGE
+                      {t.estimatedChange}
                     </div>
                     <div
                       className={`text-2xl font-bold tabular-nums ${
@@ -2223,8 +2259,8 @@ export default function BitaxeDashboard() {
                       style={mono}
                     >
                       {network.adjustment.difficultyChange >= 0
-                        ? "harder to find a block"
-                        : "easier to find a block"}
+                        ? t.harderToFind
+                        : t.easierToFind}
                     </div>
                   </div>
                   <div className="bg-page p-5">
@@ -2232,7 +2268,7 @@ export default function BitaxeDashboard() {
                       className="text-[10px] tracking-[0.2em] text-muted mb-2"
                       style={mono}
                     >
-                      EPOCH PROGRESS
+                      {t.epochProgress}
                     </div>
                     <div
                       className="text-2xl font-bold text-accent tabular-nums"
@@ -2262,19 +2298,19 @@ export default function BitaxeDashboard() {
                     className="text-sm tracking-[0.2em] text-fg-dim"
                     style={mono}
                   >
-                    WIN PROBABILITY · LIVE
+                    {t.winProbability}
                   </h2>
                 </div>
                 <div className="text-[10px] text-muted" style={mono}>
-                  at {formatHashrate(hashrate1m)} vs diff{" "}
+                  {t.at} {formatHashrate(hashrate1m)} {t.vsDiff}{" "}
                   {formatDiff(network.difficulty)}
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-line">
                 {[
-                  { label: "PER BLOCK · ~10 MIN", p: pPerBlock },
-                  { label: "PER DAY", p: pPerDay },
-                  { label: "PER YEAR", p: pPerYear },
+                  { label: t.perBlock, p: pPerBlock },
+                  { label: t.perDay, p: pPerDay },
+                  { label: t.perYear, p: pPerYear },
                 ].map(({ label, p }) => (
                   <div key={label} className="bg-page p-5">
                     <div
@@ -2287,7 +2323,7 @@ export default function BitaxeDashboard() {
                       className="text-2xl font-bold text-accent tabular-nums"
                       style={mono}
                     >
-                      {formatOdds(p)}
+                      {formatOdds(p, lang)}
                     </div>
                     <div
                       className="text-[10px] text-muted-dim mt-1"
@@ -2302,9 +2338,7 @@ export default function BitaxeDashboard() {
                 className="px-5 py-3 border-t border-line text-[10px] text-muted-dim leading-relaxed"
                 style={mono}
               >
-                Poisson · P(block in t) = 1 − exp(−λt) · λ = hashrate /
-                (difficulty × 2³²) · each hash is independent, past shares
-                don&apos;t change future odds.
+                {t.winProbFootnote}
               </div>
             </div>
 
@@ -2318,12 +2352,14 @@ export default function BitaxeDashboard() {
                       className="text-sm tracking-[0.2em] text-fg-dim"
                       style={mono}
                     >
-                      {getPool(poolId).label.toUpperCase()} · LAST{" "}
-                      {soloBlocks.length} BLOCKS FOUND
+                      {t.blocksFoundTitle(
+                        getPool(poolId).label,
+                        soloBlocks.length,
+                      )}
                     </h2>
                   </div>
                   <div className="text-[10px] text-muted" style={mono}>
-                    any solo miner · not just you
+                    {t.anySoloMiner}
                   </div>
                 </div>
                 <div className="divide-y divide-line/60">
@@ -2350,7 +2386,7 @@ export default function BitaxeDashboard() {
                               className="px-2 py-0.5 bg-accent text-black text-[10px] font-bold tracking-[0.2em] record-pulse"
                               style={mono}
                             >
-                              🎰 YOU WON
+                              {t.youWonBadge}
                             </span>
                           )}
                         </div>
@@ -2358,7 +2394,7 @@ export default function BitaxeDashboard() {
                           className="text-xs text-muted flex-1 tabular-nums"
                           style={mono}
                         >
-                          {formatRelativeTime(b.timestamp)}
+                          {formatRelativeTime(b.timestamp, lang)}
                         </div>
                         <div
                           className={`text-[11px] break-all ${
@@ -2368,7 +2404,7 @@ export default function BitaxeDashboard() {
                         >
                           {addr
                             ? `${addr.slice(0, 10)}…${addr.slice(-6)}`
-                            : "unknown"}
+                            : t.unknown}
                         </div>
                         <div
                           className="text-accent tabular-nums shrink-0 md:w-28 md:text-right"
@@ -2391,7 +2427,7 @@ export default function BitaxeDashboard() {
                   style={mono}
                 >
                   <Hash className="w-3 h-3" />
-                  SHARES SUBMITTED
+                  {t.sharesSubmitted}
                 </div>
                 <div className="text-3xl font-bold text-accent tabular-nums" style={mono}>
                   {formatNumber(shares)}
@@ -2403,7 +2439,7 @@ export default function BitaxeDashboard() {
                   style={mono}
                 >
                   <Bitcoin className="w-3 h-3" />
-                  BLOCK REWARD
+                  {t.blockReward}
                 </div>
                 <div className="text-3xl font-bold text-accent tabular-nums" style={mono}>
                   {network.blockReward} BTC
@@ -2411,7 +2447,7 @@ export default function BitaxeDashboard() {
                 <div className="text-[10px] text-muted-dim mt-1" style={mono}>
                   ≈ €{formatNumber(network.blockReward * network.btcEur)}
                   {network.stale && (
-                    <span className="text-amber-500/80"> · stale</span>
+                    <span className="text-amber-500/80"> · {t.stale.toLowerCase()}</span>
                   )}
                 </div>
               </div>
@@ -2421,13 +2457,13 @@ export default function BitaxeDashboard() {
                   style={mono}
                 >
                   <Activity className="w-3 h-3" />
-                  POOL FEE
+                  {t.poolFee}
                 </div>
                 <div className="text-3xl font-bold text-fg" style={mono}>
                   2%
                 </div>
                 <div className="text-[10px] text-muted-dim mt-1" style={mono}>
-                  only on block win
+                  {t.onlyOnBlockWin}
                 </div>
               </div>
             </div>
@@ -2441,7 +2477,7 @@ export default function BitaxeDashboard() {
                     className="text-sm tracking-[0.2em] text-fg-dim"
                     style={mono}
                   >
-                    PROFITABILITY · REALITY CHECK
+                    {t.profitability}
                   </h2>
                 </div>
                 <div
@@ -2467,7 +2503,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] tracking-[0.2em] text-muted mb-2"
                     style={mono}
                   >
-                    POWER DRAW
+                    {t.powerDraw}
                   </div>
                   <div
                     className="text-2xl font-bold text-accent tabular-nums"
@@ -2479,9 +2515,9 @@ export default function BitaxeDashboard() {
                     className="text-[10px] text-muted-dim mt-1"
                     style={mono}
                   >
-                    {dailyKwh.toFixed(2)} kWh/day
+                    {dailyKwh.toFixed(2)} {t.kwhPerDay}
                     {powerIsEstimate && (
-                      <span className="text-amber-500/80"> · estimate</span>
+                      <span className="text-amber-500/80"> · {t.estimate}</span>
                     )}
                   </div>
                 </div>
@@ -2490,7 +2526,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] tracking-[0.2em] text-muted mb-2"
                     style={mono}
                   >
-                    COST / DAY
+                    {t.costPerDay}
                   </div>
                   <div
                     className="text-2xl font-bold text-accent tabular-nums"
@@ -2502,7 +2538,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] text-muted-dim mt-1 tabular-nums"
                     style={mono}
                   >
-                    {formatEur(monthlyCost)}/mo · {formatEur(yearlyCost)}/yr
+                    {t.costDetail(formatEur(monthlyCost), formatEur(yearlyCost))}
                   </div>
                 </div>
                 <div className="bg-page p-5">
@@ -2510,20 +2546,22 @@ export default function BitaxeDashboard() {
                     className="text-[10px] tracking-[0.2em] text-muted mb-2"
                     style={mono}
                   >
-                    EXPECTED REWARD
+                    {t.expectedReward}
                   </div>
                   <div
                     className="text-2xl font-bold text-accent tabular-nums"
                     style={mono}
                   >
                     {formatEur(dailyExpectedReward)}
-                    <span className="text-[10px] text-muted-dim">/day</span>
+                    <span className="text-[10px] text-muted-dim">
+                      {t.perDaySuffix}
+                    </span>
                   </div>
                   <div
                     className="text-[10px] text-muted-dim mt-1 tabular-nums"
                     style={mono}
                   >
-                    {formatEur(yearlyExpectedReward)}/yr · P × reward × price
+                    {t.rewardDetail(formatEur(yearlyExpectedReward))}
                   </div>
                 </div>
                 <div className="bg-page p-5">
@@ -2531,7 +2569,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] tracking-[0.2em] text-muted mb-2"
                     style={mono}
                   >
-                    NET / YEAR
+                    {t.netPerYear}
                   </div>
                   <div
                     className={`text-2xl font-bold tabular-nums ${
@@ -2547,10 +2585,10 @@ export default function BitaxeDashboard() {
                     style={mono}
                   >
                     {netYearly >= 0
-                      ? "profitable on paper"
+                      ? t.profitableOnPaper
                       : netDaily < 0
-                      ? "pure entertainment budget"
-                      : "break-even-ish"}
+                      ? t.pureEntertainment
+                      : t.breakEvenIsh}
                   </div>
                 </div>
               </div>
@@ -2558,11 +2596,7 @@ export default function BitaxeDashboard() {
                 className="px-5 py-3 border-t border-line text-[10px] text-muted-dim leading-relaxed"
                 style={mono}
               >
-                Expected value, not reality. If you never hit a block (very
-                likely), yearly loss = cost column. The &quot;expected reward&quot;
-                includes the tiny chance of the full jackpot — that's why net
-                can look almost break-even despite daily cost &gt; daily
-                earnings.
+                {t.profitFootnote}
               </div>
             </div>
 
@@ -2582,7 +2616,7 @@ export default function BitaxeDashboard() {
                       className="text-[10px] text-green-500 ml-1"
                       style={mono}
                     >
-                      ● ONLINE
+                      ● {t.online}
                     </span>
                   )}
                   {bitaxeUrl && !bitaxe && bitaxeError && (
@@ -2599,7 +2633,7 @@ export default function BitaxeDashboard() {
                   className="text-[10px] text-muted hover:text-accent"
                   style={mono}
                 >
-                  {bitaxeUrl ? "CONFIGURE" : "CONNECT"}
+                  {bitaxeUrl ? t.configure : t.connect}
                 </button>
               </div>
 
@@ -2609,7 +2643,7 @@ export default function BitaxeDashboard() {
                     className="text-[10px] text-muted mb-2 tracking-[0.2em]"
                     style={mono}
                   >
-                    DEVICE IP OR URL · e.g. 192.168.1.50
+                    {t.deviceIpLabel}
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -2625,7 +2659,7 @@ export default function BitaxeDashboard() {
                       className="px-3 py-2 border border-accent/40 bg-accent/10 text-accent text-xs hover:bg-accent/20"
                       style={mono}
                     >
-                      SAVE
+                      {t.save}
                     </button>
                     {bitaxeUrl && (
                       <button
@@ -2638,13 +2672,12 @@ export default function BitaxeDashboard() {
                         className="px-3 py-2 border border-line text-muted text-xs hover:border-red-500/40 hover:text-red-500"
                         style={mono}
                       >
-                        CLEAR
+                        {t.clear}
                       </button>
                     )}
                   </div>
                   <div className="text-[10px] text-muted-dim mt-2">
-                    Le miner doit être joignable depuis ce navigateur (même
-                    réseau local). Tout reste chez toi.
+                    {t.deviceAccessNote}
                   </div>
                 </div>
               )}
@@ -2657,7 +2690,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <Zap className="w-3 h-3" /> DEVICE HASHRATE
+                        <Zap className="w-3 h-3" /> {t.deviceHashrate}
                       </div>
                       <div
                         className="text-xl font-bold text-accent tabular-nums"
@@ -2669,7 +2702,7 @@ export default function BitaxeDashboard() {
                         className="text-[10px] text-muted-dim mt-1"
                         style={mono}
                       >
-                        device-reported
+                        {t.deviceReported}
                       </div>
                     </div>
                     <div
@@ -2681,7 +2714,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <Thermometer className="w-3 h-3" /> TEMP
+                        <Thermometer className="w-3 h-3" /> {t.temp}
                       </div>
                       <div
                         className={`text-xl font-bold tabular-nums ${
@@ -2700,7 +2733,7 @@ export default function BitaxeDashboard() {
                           className="text-[10px] text-red-500 mt-1"
                           style={mono}
                         >
-                          ⚠ THROTTLING RISK
+                          {t.throttlingRisk}
                         </div>
                       )}
                     </div>
@@ -2709,7 +2742,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <Activity className="w-3 h-3" /> POWER
+                        <Activity className="w-3 h-3" /> {t.power}
                       </div>
                       <div
                         className="text-xl font-bold text-accent tabular-nums"
@@ -2731,7 +2764,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <Wind className="w-3 h-3" /> FAN
+                        <Wind className="w-3 h-3" /> {t.fan}
                       </div>
                       <div
                         className="text-xl font-bold text-accent tabular-nums"
@@ -2743,7 +2776,7 @@ export default function BitaxeDashboard() {
                         className="text-[10px] text-muted-dim mt-1"
                         style={mono}
                       >
-                        RPM
+                        {t.rpm}
                       </div>
                     </div>
                     <div
@@ -2753,7 +2786,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <AlertTriangle className="w-3 h-3" /> ERROR RATE
+                        <AlertTriangle className="w-3 h-3" /> {t.errorRate}
                       </div>
                       <div
                         className={`text-xl font-bold tabular-nums ${
@@ -2772,8 +2805,8 @@ export default function BitaxeDashboard() {
                         style={mono}
                       >
                         {sharesTotal > 0
-                          ? `${formatNumber(sharesRejected)} / ${formatNumber(sharesTotal)} rej`
-                          : "awaiting shares"}
+                          ? `${formatNumber(sharesRejected)} / ${formatNumber(sharesTotal)} ${t.rejShort}`
+                          : t.awaitingShares}
                       </div>
                     </div>
                     <div
@@ -2783,7 +2816,7 @@ export default function BitaxeDashboard() {
                         className="flex items-center gap-2 text-[10px] tracking-[0.2em] text-muted mb-2"
                         style={mono}
                       >
-                        <Gauge className="w-3 h-3" /> HASHRATE ERR
+                        <Gauge className="w-3 h-3" /> {t.hashrateErrLbl}
                       </div>
                       <div
                         className={`text-xl font-bold tabular-nums ${
@@ -2806,8 +2839,8 @@ export default function BitaxeDashboard() {
                         style={mono}
                       >
                         {hashrateErrPct != null
-                          ? `pool ${poolWindowLabel} vs device`
-                          : "awaiting data"}
+                          ? t.poolVsDevice(poolWindowLabel)
+                          : t.awaitingData}
                       </div>
                     </div>
                   </div>
@@ -2817,33 +2850,33 @@ export default function BitaxeDashboard() {
                   >
                     {bitaxeAsic && (
                       <div>
-                        <span className="text-muted">ASIC </span>
+                        <span className="text-muted">{t.specAsic} </span>
                         <span className="text-fg-dim">{bitaxeAsic}</span>
                       </div>
                     )}
                     {bitaxeFreq != null && (
                       <div>
-                        <span className="text-muted">FREQ </span>
+                        <span className="text-muted">{t.specFreq} </span>
                         <span className="text-fg-dim">{bitaxeFreq} MHz</span>
                       </div>
                     )}
                     {bitaxeCoreV != null && (
                       <div>
-                        <span className="text-muted">CORE V </span>
+                        <span className="text-muted">{t.specCoreV} </span>
                         <span className="text-fg-dim">{bitaxeCoreV} mV</span>
                       </div>
                     )}
                     {bitaxeUptime != null && (
                       <div>
-                        <span className="text-muted">UPTIME </span>
+                        <span className="text-muted">{t.specUptime} </span>
                         <span className="text-fg-dim">
-                          {formatUptime(bitaxeUptime)}
+                          {formatUptime(bitaxeUptime, lang)}
                         </span>
                       </div>
                     )}
                     {bitaxeBestDiff && (
                       <div>
-                        <span className="text-muted">DEVICE BEST </span>
+                        <span className="text-muted">{t.specDeviceBest} </span>
                         <span className="text-accent tabular-nums">
                           {formatDiff(parseHashrate(bitaxeBestDiff))}
                         </span>
@@ -2862,7 +2895,7 @@ export default function BitaxeDashboard() {
                     className="text-sm tracking-[0.2em] text-fg-dim"
                     style={mono}
                   >
-                    WORKERS [{data.worker.length}]
+                    {t.workersBracket} [{data.worker.length}]
                   </h2>
                 </div>
                 <div className="divide-y divide-line/60">
@@ -2892,8 +2925,9 @@ export default function BitaxeDashboard() {
                             className="text-[10px] text-muted-dim"
                             style={mono}
                           >
-                            last share {formatRelativeTime(w.lastshare)} ·{" "}
-                            {formatNumber(w.shares)} shares
+                            {t.lastShare.toLowerCase()}{" "}
+                            {formatRelativeTime(w.lastshare, lang)} ·{" "}
+                            {formatNumber(w.shares)} {t.workerShares}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -2907,7 +2941,7 @@ export default function BitaxeDashboard() {
                             className="text-[10px] text-muted-dim"
                             style={mono}
                           >
-                            best: {formatDiff(w.bestshare)}
+                            {t.workerBest} {formatDiff(w.bestshare)}
                           </div>
                         </div>
                       </div>
@@ -2925,17 +2959,23 @@ export default function BitaxeDashboard() {
           style={mono}
         >
           <div>
-            Auto-refresh every {formatInterval(refreshMs)} · Data from{" "}
-            <span className="text-accent/80">{getPool(poolId).label}</span> ·
-            network from{" "}
+            {t.footerAutoRefresh} {formatInterval(refreshMs)} ·{" "}
+            {t.footerDataFrom}{" "}
+            <span className="text-accent/80">{getPool(poolId).label}</span> ·{" "}
+            {t.footerNetworkFrom}{" "}
             <span className="text-accent/80">mempool.space</span>
           </div>
           <div>
-            {network.height ? `block ${formatNumber(network.height)} · ` : ""}
-            diff {formatDiff(network.difficulty)} · €
+            {network.height
+              ? `${t.footerBlock} ${formatNumber(network.height)} · `
+              : ""}
+            {t.footerDiff} {formatDiff(network.difficulty)} · €
             {formatNumber(network.btcEur)}
             {network.stale && (
-              <span className="text-amber-500/80"> · using fallback</span>
+              <span className="text-amber-500/80">
+                {" "}
+                · {t.footerUsingFallback}
+              </span>
             )}
           </div>
         </footer>
