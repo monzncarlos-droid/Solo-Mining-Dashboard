@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Activity,
   Trophy,
@@ -41,6 +41,7 @@ const KWHCOST_KEY = "bitaxe:kwhCost";
 const REFRESH_KEY = "bitaxe:refreshMs";
 const POOL_KEY = "bitaxe:poolId";
 const CUSTOM_POOL_URL_KEY = "bitaxe:customPoolUrl";
+const CUSTOM_POOL_JSON_KEY = "bitaxe:customPoolJson";
 const DEFAULT_POOL_ID = "solock";
 const LANG_KEY = "bitaxe:lang";
 
@@ -211,10 +212,12 @@ const STRINGS = {
       "How often the dashboard polls the pool for your wallet stats. Shorter = more live, longer = nicer to the pool. 30s is the default. Network (mempool.space) and device polling are not affected.",
     poolSection: "POOL",
     poolPreset: "POOL PRESET",
-    customCkpoolDesc: "CKPool-format URL you provide",
-    customPoolUrl: "CUSTOM POOL URL · e.g. https://my-pool.example.com",
+    customCkpoolDesc: "JSON pool config you provide",
+    customPoolJson: "CUSTOM POOL JSON",
     customPoolNote:
-      "Any self-hosted CKPool instance exposing /users/{address} JSON. Different API shapes (Ocean, Braiins, etc.) are not supported — they'd each need an adapter.",
+      'Fields: "target" (URL, required), "path" (template with {address}, default "/users/{address}"), "adapter" ("ckpool" or "publicpool", default "ckpool"), "mempoolSlug" (mempool.space pool slug for the blocks feed, or null).',
+    customPoolJsonInvalid: "Invalid JSON:",
+    customPoolResetDefault: "Reset to template",
     poolHelp:
       "solo.ckpool.org and public-pool.io are supported out of the box. The blocks-found feed only shows for pools mempool.space tracks (currently solo.ckpool only).",
     languageLabel: "LANGUAGE",
@@ -367,10 +370,12 @@ const STRINGS = {
       "À quelle fréquence le dashboard interroge la pool. Plus court = plus live, plus long = plus gentil avec la pool. 30s par défaut. Le réseau (mempool.space) et le device ne sont pas affectés.",
     poolSection: "POOL",
     poolPreset: "PRESET DE POOL",
-    customCkpoolDesc: "URL format CKPool que tu fournis",
-    customPoolUrl: "URL POOL CUSTOM · ex. https://my-pool.example.com",
+    customCkpoolDesc: "Config JSON de pool que tu fournis",
+    customPoolJson: "JSON POOL CUSTOM",
     customPoolNote:
-      "Toute instance CKPool self-hosted exposant /users/{adresse} JSON. Les autres formats (Ocean, Braiins, etc.) ne sont pas supportés — il faudrait un adapter par format.",
+      'Champs : "target" (URL, obligatoire), "path" (template avec {address}, défaut "/users/{address}"), "adapter" ("ckpool" ou "publicpool", défaut "ckpool"), "mempoolSlug" (slug mempool.space pour le feed des blocs, ou null).',
+    customPoolJsonInvalid: "JSON invalide :",
+    customPoolResetDefault: "Remettre le template",
     poolHelp:
       "solo.ckpool.org et public-pool.io fonctionnent out-of-the-box. Le feed des blocs ne s'affiche que pour les pools suivies par mempool.space (actuellement solo.ckpool seulement).",
     languageLabel: "LANGUE",
@@ -1045,7 +1050,7 @@ const POOLS = [
     target: "https://eusolo.ckpool.org",
     path: (addr) => `/users/${addr}`,
     adapt: adaptCkpool,
-    mempoolSlug: "eusolock", // best-effort guess
+    mempoolSlug: "solock", // EU frontend of the same CKPool network — blocks appear under solock on mempool.space
   },
   {
     id: "publicpool",
@@ -1064,6 +1069,18 @@ const POOLS = [
     mempoolSlug: null,
   },
 ];
+
+const POOL_ADAPTERS = {
+  ckpool: adaptCkpool,
+  publicpool: adaptPublicPool,
+};
+
+const DEFAULT_CUSTOM_POOL_JSON = `{
+  "target": "https://my-pool.example.com",
+  "path": "/users/{address}",
+  "adapter": "ckpool",
+  "mempoolSlug": null
+}`;
 
 function getPool(id) {
   return POOLS.find((p) => p.id === id) || POOLS[0];
@@ -1182,11 +1199,78 @@ export default function BitaxeDashboard() {
     const saved = localStorage.getItem(POOL_KEY);
     return POOLS.some((p) => p.id === saved) ? saved : DEFAULT_POOL_ID;
   });
-  const [customPoolUrl, setCustomPoolUrl] = useState(
-    () => localStorage.getItem(CUSTOM_POOL_URL_KEY) || "",
-  );
+  const [customPoolJson, setCustomPoolJson] = useState(() => {
+    const saved = localStorage.getItem(CUSTOM_POOL_JSON_KEY);
+    if (saved) return saved;
+    // Migrate: if the legacy URL-only key is set, seed a JSON scaffold from it.
+    const legacyUrl = localStorage.getItem(CUSTOM_POOL_URL_KEY);
+    if (legacyUrl) {
+      return JSON.stringify(
+        {
+          target: legacyUrl,
+          path: "/users/{address}",
+          adapter: "ckpool",
+          mempoolSlug: null,
+        },
+        null,
+        2,
+      );
+    }
+    return DEFAULT_CUSTOM_POOL_JSON;
+  });
   const [lang, setLang] = useState(loadLang);
   const t = STRINGS[lang];
+
+  // Parse the custom-pool JSON blob into an effective pool config. The parsed
+  // result carries an `error` string when the JSON is malformed or missing a
+  // required field, which the UI surfaces.
+  const customPoolParsed = useMemo(() => {
+    const trimmed = customPoolJson.trim();
+    if (!trimmed) return { error: "empty" };
+    let parsed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (e) {
+      return { error: e.message };
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { error: "expected an object" };
+    }
+    if (!parsed.target || typeof parsed.target !== "string") {
+      return { error: "`target` is required" };
+    }
+    const adapterKey = parsed.adapter || "ckpool";
+    if (!POOL_ADAPTERS[adapterKey]) {
+      return {
+        error: `unknown adapter "${adapterKey}" (expected "ckpool" or "publicpool")`,
+      };
+    }
+    return {
+      target: normalizePoolUrl(parsed.target),
+      pathTemplate: parsed.path || "/users/{address}",
+      adapter: POOL_ADAPTERS[adapterKey],
+      mempoolSlug: parsed.mempoolSlug || null,
+    };
+  }, [customPoolJson]);
+
+  // The pool config actually used by fetches — merges POOLS presets with the
+  // user-supplied JSON when the "custom" preset is selected.
+  const resolvedPool = useMemo(() => {
+    const base = getPool(poolId);
+    if (base.id !== "custom") return base;
+    if (customPoolParsed.error) return { ...base, target: null };
+    return {
+      ...base,
+      target: customPoolParsed.target,
+      path: (addr) =>
+        customPoolParsed.pathTemplate.replace(
+          "{address}",
+          encodeURIComponent(addr),
+        ),
+      adapt: customPoolParsed.adapter,
+      mempoolSlug: customPoolParsed.mempoolSlug,
+    };
+  }, [poolId, customPoolParsed]);
 
   const [history, setHistory] = useState(() => loadHistory(DEFAULT_ADDRESS));
   const [allTimeBest, setAllTimeBest] = useState(() =>
@@ -1221,9 +1305,8 @@ export default function BitaxeDashboard() {
 
   const fetchData = async () => {
     if (!address) return;
-    const pool = getPool(poolId);
-    const target =
-      pool.id === "custom" ? normalizePoolUrl(customPoolUrl) : pool.target;
+    const pool = resolvedPool;
+    const target = pool.target;
     if (!target) {
       setError(t.noPoolUrl);
       return;
@@ -1264,7 +1347,7 @@ export default function BitaxeDashboard() {
     const interval = setInterval(fetchData, refreshMs);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, autoRefresh, refreshMs, poolId, customPoolUrl]);
+  }, [address, autoRefresh, refreshMs, poolId, customPoolJson]);
 
   useEffect(() => {
     localStorage.setItem(REFRESH_KEY, String(refreshMs));
@@ -1275,9 +1358,10 @@ export default function BitaxeDashboard() {
   }, [poolId]);
 
   useEffect(() => {
-    if (customPoolUrl) localStorage.setItem(CUSTOM_POOL_URL_KEY, customPoolUrl);
-    else localStorage.removeItem(CUSTOM_POOL_URL_KEY);
-  }, [customPoolUrl]);
+    if (customPoolJson)
+      localStorage.setItem(CUSTOM_POOL_JSON_KEY, customPoolJson);
+    else localStorage.removeItem(CUSTOM_POOL_JSON_KEY);
+  }, [customPoolJson]);
 
   useEffect(() => {
     localStorage.setItem(LANG_KEY, lang);
@@ -1339,11 +1423,11 @@ export default function BitaxeDashboard() {
   };
 
   useEffect(() => {
-    const slug = getPool(poolId).mempoolSlug;
+    const slug = resolvedPool.mempoolSlug;
     fetchSoloBlocks(slug);
     const id = setInterval(() => fetchSoloBlocks(slug), SOLO_BLOCKS_REFRESH_MS);
     return () => clearInterval(id);
-  }, [poolId]);
+  }, [poolId, resolvedPool.mempoolSlug]);
 
   // Persist kWh cost
   useEffect(() => {
@@ -1833,19 +1917,44 @@ export default function BitaxeDashboard() {
             </div>
             {poolId === "custom" && (
               <div className="mb-6">
-                <div
-                  className="text-[10px] tracking-[0.25em] text-muted-dim mb-2"
-                  style={mono}
-                >
-                  {t.customPoolUrl}
+                <div className="flex items-center justify-between mb-2">
+                  <div
+                    className="text-[10px] tracking-[0.25em] text-muted-dim"
+                    style={mono}
+                  >
+                    {t.customPoolJson}
+                  </div>
+                  <button
+                    onClick={() =>
+                      setCustomPoolJson(DEFAULT_CUSTOM_POOL_JSON)
+                    }
+                    className="text-[10px] tracking-[0.15em] text-muted hover:text-accent transition"
+                    style={mono}
+                  >
+                    {t.customPoolResetDefault}
+                  </button>
                 </div>
-                <input
-                  value={customPoolUrl}
-                  onChange={(e) => setCustomPoolUrl(e.target.value.trim())}
-                  placeholder="https://..."
-                  className="w-full bg-surface-alt/50 border border-line focus:border-accent/50 outline-none px-3 py-2 text-xs text-fg-dim"
+                <textarea
+                  value={customPoolJson}
+                  onChange={(e) => setCustomPoolJson(e.target.value)}
+                  spellCheck={false}
+                  rows={8}
+                  className={`w-full bg-surface-alt/50 border outline-none px-3 py-2 text-xs text-fg-dim resize-y ${
+                    customPoolParsed.error
+                      ? "border-red-500/60 focus:border-red-500"
+                      : "border-line focus:border-accent/50"
+                  }`}
                   style={mono}
                 />
+                {customPoolParsed.error &&
+                  customPoolParsed.error !== "empty" && (
+                    <div
+                      className="mt-2 text-[10px] text-red-500 leading-relaxed break-words"
+                      style={mono}
+                    >
+                      {t.customPoolJsonInvalid} {customPoolParsed.error}
+                    </div>
+                  )}
                 <div
                   className="mt-2 text-[10px] text-muted-dim leading-relaxed"
                   style={mono}
@@ -1978,11 +2087,8 @@ export default function BitaxeDashboard() {
                   {data ? t.liveFetchBlocked : t.fetchFailed}
                 </div>
                 {(() => {
-                  const pool = getPool(poolId);
-                  const target =
-                    pool.id === "custom"
-                      ? normalizePoolUrl(customPoolUrl)
-                      : pool.target;
+                  const pool = resolvedPool;
+                  const target = pool.target;
                   const href = target
                     ? `${target}${pool.path(address)}`
                     : null;
