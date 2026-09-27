@@ -219,7 +219,7 @@ const STRINGS = {
     customPoolJsonInvalid: "Invalid JSON:",
     customPoolResetDefault: "Reset to template",
     poolHelp:
-      "solo.ckpool.org and public-pool.io are supported out of the box. The blocks-found feed only shows for pools mempool.space tracks (currently solo.ckpool only).",
+      "solo.ckpool.org, public-pool.io, and BTC PoW Lab are supported out of the box. The blocks-found feed only shows for pools mempool.space tracks (currently solo.ckpool only).",
     languageLabel: "LANGUAGE",
     persistNote:
       "All preferences are persisted in localStorage. Changes apply instantly.",
@@ -377,7 +377,7 @@ const STRINGS = {
     customPoolJsonInvalid: "JSON invalide :",
     customPoolResetDefault: "Remettre le template",
     poolHelp:
-      "solo.ckpool.org et public-pool.io fonctionnent out-of-the-box. Le feed des blocs ne s'affiche que pour les pools suivies par mempool.space (actuellement solo.ckpool seulement).",
+      "solo.ckpool.org, public-pool.io et BTC PoW Lab fonctionnent out-of-the-box. Le feed des blocs ne s'affiche que pour les pools suivies par mempool.space (actuellement solo.ckpool seulement).",
     languageLabel: "LANGUE",
     persistNote:
       "Toutes les préférences sont persistées en localStorage. Les changements s'appliquent instantanément.",
@@ -1035,6 +1035,31 @@ function adaptPublicPool(raw) {
   };
 }
 
+function adaptBtcPowLab(raw) {
+  const workersArr = Array.isArray(raw?.workers) ? raw.workers : [];
+  const fiveMinute = Number(raw?.hashrate_5m_hs) || 0;
+  const oneHour = Number(raw?.hashrate_1h_hs) || 0;
+  const oneDay = Number(raw?.hashrate_24h_hs) || 0;
+  return {
+    hashrate1m: String(fiveMinute),
+    hashrate5m: String(fiveMinute),
+    hashrate1hr: String(oneHour),
+    hashrate1d: String(oneDay),
+    hashrate7d: String(oneDay),
+    bestshare: Number(raw?.best_share_difficulty) || 0,
+    shares: Number(raw?.accepted_shares) || 0,
+    workers: Number(raw?.workers_total) || workersArr.length,
+    worker: workersArr.map((w) => ({
+      workername: w.name || w.worker_id || "",
+      hashrate1m: String(Number(w.hashrate_5m_hs) || 0),
+      bestshare: Number(w.best_share_difficulty) || 0,
+      shares: Number(w.accepted) || 0,
+      lastshare: Number(w.last_share_at) || 0,
+    })),
+    lastshare: Number(raw?.last_share_at) || 0,
+  };
+}
+
 const POOLS = [
   {
     id: "solock",
@@ -1059,6 +1084,14 @@ const POOLS = [
     path: (addr) => `/api/client/${addr}`,
     adapt: adaptPublicPool,
     mempoolSlug: null, // best-effort: mempool.space slug not verified
+  },
+  {
+    id: "btcpowlab",
+    label: "BTC PoW Lab · Hybrid Solo",
+    target: "https://btcpowlab-pool.com",
+    path: (addr) => `/public/v1/miner/${addr}`,
+    adapt: adaptBtcPowLab,
+    mempoolSlug: null,
   },
   {
     id: "custom",

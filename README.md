@@ -13,7 +13,7 @@ Live hashrate, best share, block-finding odds, device telemetry, profitability �
 
 | | |
 |---|---|
-| 📡 **Multi-pool** | `solo.ckpool.org`, `public-pool.io`, any self-hosted CKPool. Adapters normalize different pool JSON shapes. |
+| 📡 **Multi-pool** | `solo.ckpool.org`, `public-pool.io`, BTC PoW Lab, any self-hosted CKPool. Adapters normalize different pool JSON shapes. |
 | 📈 **Interactive 24h chart** | No-dep SVG, hover tracks the curve pixel-accurate, tooltip never overlaps the data point. |
 | 🎰 **Jackpot bar** | Log-scale progress from your best share to full network difficulty. |
 | 🎯 **Honest probabilities** | Poisson-based: `P(block in t) = 1 − exp(−λt)`. Per block / per day / per year. No lottery-ticket lies. |
@@ -41,7 +41,7 @@ npm run dev
 Open `http://localhost:5173` and:
 
 1. Paste your **wallet address** (bc1q…) at the top.
-2. Click the gear ⚙️ → **Pool** → pick `solo.ckpool.org`, `public-pool.io`, or enter a custom CKPool URL.
+2. Click the gear ⚙️ → **Pool** → pick `solo.ckpool.org`, `public-pool.io`, BTC PoW Lab, or enter a custom CKPool URL.
 3. In the **Mining Device** panel, click **Connect** and enter your device IP (e.g. `192.168.1.50`).
 4. Optional: set **€/kWh** in the Profitability panel, pick a theme and accent color, tune the refresh rate.
 
@@ -93,7 +93,7 @@ MIT.
 
 | | |
 |---|---|
-| 📡 **Multi-pool** | `solo.ckpool.org`, `public-pool.io`, toute instance CKPool self-hosted. Les adapters normalisent les formats JSON de chaque pool. |
+| 📡 **Multi-pool** | `solo.ckpool.org`, `public-pool.io`, BTC PoW Lab, toute instance CKPool self-hosted. Les adapters normalisent les formats JSON de chaque pool. |
 | 📈 **Graphique 24h interactif** | SVG sans dépendance, le curseur suit la courbe au pixel près, le tooltip ne passe jamais sur le point. |
 | 🎰 **Barre jackpot** | Progression log-scale de ta meilleure share jusqu'à la difficulté réseau complète. |
 | 🎯 **Probabilités honnêtes** | Basées sur un processus de Poisson : `P(bloc en t) = 1 − exp(−λt)`. Par bloc / jour / an. Pas de mensonge "tu es près du jackpot". |
@@ -121,7 +121,7 @@ npm run dev
 Ouvre `http://localhost:5173` puis :
 
 1. Colle ton **adresse wallet** (bc1q…) en haut.
-2. Clique l'engrenage ⚙️ → **Pool** → choisis `solo.ckpool.org`, `public-pool.io`, ou entre une URL CKPool custom.
+2. Clique l'engrenage ⚙️ → **Pool** → choisis `solo.ckpool.org`, `public-pool.io`, BTC PoW Lab, ou entre une URL CKPool custom.
 3. Dans le panneau **Mining Device**, clique **Connect** et entre l'IP du device (ex. `192.168.1.50`).
 4. Optionnel : configure **€/kWh** dans le panneau Rentabilité, choisis thème + accent, règle le refresh.
 
